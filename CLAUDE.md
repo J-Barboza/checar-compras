@@ -57,4 +57,4 @@ adb shell am start -n com.jbarboz.checar_compras/.MainActivity
 4. Remover item deslizando, mantendo o botão como alternativa.
 5. Ícone próprio do app e modo escuro.
 
-Git: o repositório local tem só o commit inicial do template. O trabalho acima ainda **não foi commitado** e não há remoto no GitHub.
+Git: branch `master`, commits por bloco lógico (spec seção 10), autor `fr.barboza@gmail.com`, configurado só neste repositório. Ainda não há remoto no GitHub.
