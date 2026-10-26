@@ -57,4 +57,4 @@ adb shell am start -n com.jbarboz.checar_compras/.MainActivity
 4. Remover item deslizando, mantendo o botão como alternativa.
 5. Ícone próprio do app e modo escuro.
 
-Git: branch `master`, commits por bloco lógico (spec seção 10), autor `fr.barboza@gmail.com`, configurado só neste repositório. Ainda não há remoto no GitHub.
+Git: branch `master`, commits por bloco lógico (spec seção 10), autor `jose.f.barboza@outlook.com` (e-mail pessoal do GitHub, usuário `j-barboza`), configurado só neste repositório. O e-mail global do computador é o corporativo: não use. Ainda não há remoto no GitHub.

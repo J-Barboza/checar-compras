@@ -212,10 +212,9 @@ O roteiro deve ser mantido atualizado no repositório, com casos, passos e resul
 
 ## 12. Pendências
 
-- Confirmar o nome do usuário GitHub (`j-barboza`). O pacote Android ficou `com.jbarboz.checar_compras`, com underline, porque hífen não é válido em nome de pacote.
 - Definir como obter a conta ou o Mac para o build de iOS, antes da fase 2.
 
-Resolvidas em 26/10/2026: sugestão de nome pelo Open Food Facts; tolerância padrão de R$ 1,00 (configurável); leitura com `expo-camera`.
+Resolvidas em 26/10/2026: usuário GitHub confirmado como `j-barboza` (commits com `jose.f.barboza@outlook.com`); pacote Android `com.jbarboz.checar_compras`, com underline, porque hífen não é válido em nome de pacote; sugestão de nome pelo Open Food Facts; tolerância padrão de R$ 1,00 (configurável); leitura com `expo-camera`.
 
 ## 13. Layout
 
