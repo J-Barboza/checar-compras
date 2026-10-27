@@ -19,11 +19,11 @@ src/domain/              lógica pura e testada (sem React Native)
   purchase.test.ts       testes Jest
   priceOcr.ts            escolhe o preço entre as linhas do OCR (vírgula perdida, centavos sobrescritos)
 src/data/
-  db.ts                  SQLite: products (apelido + último preço), flv_history, kv (compra em andamento, tolerância, mercados)
+  db.ts                  SQLite: products (apelido + último preço), flv_history, receipts (compras concluídas, 30 dias), kv (compra em andamento, tolerância, mercados)
   openFoodFacts.ts       sugestão de nome pelo código de barras (timeout de 4 s, falha em silêncio)
   labelOcr.ts            OCR da foto da etiqueta (ML Kit no aparelho); apaga a foto depois
 src/ui/                  theme.ts (cores/fonte), components.tsx (Button, Header, MoneyField…), ItemRow.tsx
-src/screens/             Home, NewPurchase, List (+ folha de edição), Scan, Flv, Check, Done, Config
+src/screens/             Home, NewPurchase, List (+ folha de edição), Scan, Flv, Check (também revisão), Done, History, Config
 ```
 
 ## Comandos (a partir da raiz do projeto)
@@ -51,9 +51,11 @@ adb shell am start -n com.jbarboz.checar_compras/.MainActivity
 ## Estado (27/10/2026)
 
 **Atualizado em:** 2026-10-27
-**Próximo passo:** analisar o resultado do teste do OCR no supermercado (fotos das etiquetas que falharem ficam em `image/`) e ajustar `priceOcr.ts`.
+**Próximo passo:** levar a `develop` para a `uat`, gerar o APK de teste 3 e testar no supermercado o OCR de etiquetas de cooperado e a revisão em casa.
 
 **Sessão de 27/10:** OCR corrigido com base em logs reais do ML Kit (vírgula perdida "1899" e centavos sobrescritos "47" + "15"; 8 de 9 leituras certas), branch `uat` criada e publicada, APK da `uat` instalado nos dois celulares (Galaxy M52 `RQCT6010AWX` e SM-S731B `RQGYB08KQ4Y`, este o do supermercado), pasta `image/` no `.gitignore`. Pendente: resultado do teste no supermercado.
+
+**Sessão de 27/10 (noite), na `develop`:** teste no supermercado: a maioria das leituras certa; falharam as etiquetas com preço normal e "exclusivo para cooperados" do mesmo tamanho (fotos em `image/`). O OCR agora devolve todos os preços grandes (≥ 75% da altura do maior): o mais barato preenche o campo (o usuário é cooperado) e os outros viram sugestão "Outro preço na foto". Feita a spec 4.9 com revisão editável: compras concluídas ficam em "Compras anteriores" por 30 dias; na revisão dá para marcar itens, corrigir o total do caixa e excluir (itens e preços não são editáveis). Testado no M52. São 26 testes passando.
 
 **APK de teste 1 instalado e funcionando:** nova compra (mercado + orçamento), leitura de código pela câmera ou digitação, apelido com sugestão do Open Food Facts, último preço do produto, preço digitado, leitura repetida soma +1, FLV por kg ou unidade com último preço, edição e remoção de item, aviso de orçamento, conferência (ordem de coleta ou A a Z, marcar itens, total do caixa, tolerância), resultado e configuração da tolerância. A compra em andamento persiste se o app fechar. São 21 testes passando.
 
@@ -61,7 +63,7 @@ adb shell am start -n com.jbarboz.checar_compras/.MainActivity
 
 **Próximo APK (ainda não feito):**
 1. Ajustes do OCR conforme o teste no supermercado.
-2. Comprovante para contestação (30 dias, exclusão manual) e ranking por supermercado (spec 4.8 e 4.9).
+2. Ranking por supermercado (spec 4.8). O comprovante (4.9) já está na `develop`.
 3. Expiração da compra abandonada (5 h ou virada do dia) com aviso ao reabrir (spec 4.10).
 4. Remover item deslizando, mantendo o botão como alternativa.
 5. Ícone próprio do app e modo escuro.
