@@ -17,9 +17,11 @@ src/domain/              lógica pura e testada (sem React Native)
   money.ts               parse/format de R$ ("1.234,56"), arredondamento em centavos
   purchase.ts            itens, totais, FLV kg/un, leitura repetida, orçamento, tolerância, ordenação
   purchase.test.ts       testes Jest
+  priceOcr.ts            escolhe o preço entre as linhas do OCR (vírgula perdida, centavos sobrescritos)
 src/data/
   db.ts                  SQLite: products (apelido + último preço), flv_history, kv (compra em andamento, tolerância, mercados)
   openFoodFacts.ts       sugestão de nome pelo código de barras (timeout de 4 s, falha em silêncio)
+  labelOcr.ts            OCR da foto da etiqueta (ML Kit no aparelho); apaga a foto depois
 src/ui/                  theme.ts (cores/fonte), components.tsx (Button, Header, MoneyField…), ItemRow.tsx
 src/screens/             Home, NewPurchase, List (+ folha de edição), Scan, Flv, Check, Done, Config
 ```
@@ -46,15 +48,17 @@ adb shell am start -n com.jbarboz.checar_compras/.MainActivity
 - `onBarcodeScanned` dispara várias vezes por segundo; `ScanScreen` usa um `ref` de trava.
 - Teclado: `KeyboardAvoidingView behavior="padding"` em `App.tsx` (o Android é edge-to-edge).
 
-## Estado (26/10/2026)
+## Estado (27/10/2026)
 
-**APK de teste 1 instalado e funcionando:** nova compra (mercado + orçamento), leitura de código pela câmera ou digitação, apelido com sugestão do Open Food Facts, último preço do produto, preço digitado, leitura repetida soma +1, FLV por kg ou unidade com último preço, edição e remoção de item, aviso de orçamento, conferência (ordem de coleta ou A a Z, marcar itens, total do caixa, tolerância), resultado e configuração da tolerância. A compra em andamento persiste se o app fechar. São 12 testes passando.
+**APK de teste 1 instalado e funcionando:** nova compra (mercado + orçamento), leitura de código pela câmera ou digitação, apelido com sugestão do Open Food Facts, último preço do produto, preço digitado, leitura repetida soma +1, FLV por kg ou unidade com último preço, edição e remoção de item, aviso de orçamento, conferência (ordem de coleta ou A a Z, marcar itens, total do caixa, tolerância), resultado e configuração da tolerância. A compra em andamento persiste se o app fechar. São 21 testes passando.
+
+**APK de teste 2 (branch `uat`, em teste no supermercado):** preço pela foto da etiqueta (OCR com ML Kit no aparelho). O valor lido só preenche o campo e o usuário confirma ou corrige. Em 9 leituras de cartazes reais, 8 deram o preço certo; a que errou foi porque o ML Kit não leu os reais. Para diagnosticar falhas, registre no log as linhas e as posições (`frame`) devolvidas pelo `TextRecognition.recognize` e leia com `adb logcat`.
 
 **Próximo APK (ainda não feito):**
-1. OCR do preço pela foto da etiqueta (ML Kit, no aparelho), com confirmação e correção. Hoje o preço é digitado.
+1. Ajustes do OCR conforme o teste no supermercado.
 2. Comprovante para contestação (30 dias, exclusão manual) e ranking por supermercado (spec 4.8 e 4.9).
 3. Expiração da compra abandonada (5 h ou virada do dia) com aviso ao reabrir (spec 4.10).
 4. Remover item deslizando, mantendo o botão como alternativa.
 5. Ícone próprio do app e modo escuro.
 
-Git: branch `main` (o usuário não quer `master`), commits por bloco lógico (spec seção 10), autor `jose.f.barboza@outlook.com` (e-mail pessoal do GitHub, usuário `j-barboza`), configurado só neste repositório. O e-mail global do computador é o corporativo: não use. Remoto: https://github.com/J-Barboza/checar-compras (privado até o app ficar completo, quando vira público). Já publicado: não reescreva o histórico.
+Git: fluxo `develop` (desenvolvimento) → `uat` (APK em teste/avaliação) → `main` (quando estiver bom). O usuário não quer `master`. Commits por bloco lógico (spec seção 10), autor `jose.f.barboza@outlook.com` (e-mail pessoal do GitHub, usuário `j-barboza`), configurado só neste repositório. O e-mail global do computador é o corporativo: não use. Remoto: https://github.com/J-Barboza/checar-compras (privado até o app ficar completo, quando vira público). Já publicado: não reescreva o histórico.

@@ -28,7 +28,7 @@ Qualquer consumidor de supermercado, com foco em compras maiores. Inclui idosos 
 - **Produto novo:** o app pede um apelido curto. Sugestão de nome vinda do Open Food Facts quando há internet. O apelido é digitado e pode repetir entre produtos, pois a identidade é o código de barras.
 - **Teclado:** nas telas de digitação, as informações da coleta ficam no alto e o campo fica embaixo, logo acima do teclado.
 - **Leitura repetida:** ler um código que já está na compra soma 1 à quantidade da linha existente e volta para a lista, sem pedir preço nem criar outra linha.
-- **Preço por foto da etiqueta:** a câmera fotografa a etiqueta de gôndola, o OCR (Google ML Kit, no aparelho) extrai o valor, e o app mostra o número reconhecido para confirmação ou correção com um toque. A foto não é guardada, só o valor confirmado. *(Ainda não implementado: no APK de teste 1 o preço é digitado.)*
+- **Preço por foto da etiqueta:** a câmera fotografa a etiqueta de gôndola, o OCR (Google ML Kit, no aparelho) extrai o valor, e o app mostra o número reconhecido para confirmação ou correção com um toque. A foto não é guardada, só o valor confirmado. Cartazes costumam ter centavos pequenos ou sobrescritos, que o OCR devolve sem a vírgula ("1899") ou em linha separada ("47" e "15"); o app trata os dois casos.
 - **Preço ilegível:** o item fica pendente, sem entrar no total, até ser preenchido manualmente. Item pendente não impede concluir a compra; ele aparece destacado na lista e na conferência.
 
 ### 4.2 Produtos sem código de barras (FLV e itens a granel)
