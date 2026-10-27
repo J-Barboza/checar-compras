@@ -3,13 +3,14 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { getProduct, type Product } from '../data/db';
+import { readPriceFromPhoto } from '../data/labelOcr';
 import { suggestName } from '../data/openFoodFacts';
 import { formatMoney, moneyToInput, parseMoney } from '../domain/money';
 import { findByCode, type Item, type Purchase } from '../domain/purchase';
 import { Button, Field, Label, MoneyField, T } from '../ui/components';
 import { colors } from '../ui/theme';
 
-type Step = 'code' | 'typeCode' | 'name' | 'price';
+type Step = 'code' | 'typeCode' | 'name' | 'price' | 'photo';
 
 const BARCODE_TYPES = ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'itf14'] as const;
 const shortDate = (ms: number) => new Date(ms).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
@@ -37,8 +38,11 @@ export function ScanScreen({
   const [known, setKnown] = useState<Product | null>(null);
   const [suggestion, setSuggestion] = useState<string | null | 'loading'>(null);
   const [price, setPrice] = useState('');
+  const [reading, setReading] = useState(false);
+  const [ocrFailed, setOcrFailed] = useState(false);
   // onBarcodeScanned fires many times per second; this keeps only the first read.
   const locked = useRef(false);
+  const camera = useRef<CameraView>(null);
 
   useEffect(() => {
     if (permission && !permission.granted && permission.canAskAgain) requestPermission();
@@ -66,6 +70,47 @@ export function ScanScreen({
     if (locked.current) return;
     locked.current = true;
     handleCode(result.data);
+  }
+
+  // The recognized value only fills the field; the user still confirms with "Salvar preço".
+  async function takeLabelPhoto() {
+    if (!camera.current || reading) return;
+    setReading(true);
+    let value: number | null = null;
+    try {
+      const photo = await camera.current.takePictureAsync({ quality: 0.7, shutterSound: false });
+      value = await readPriceFromPhoto(photo.uri);
+    } catch {}
+    setReading(false);
+    setOcrFailed(value == null);
+    if (value != null) setPrice(moneyToInput(value));
+    setStep('price');
+  }
+
+  if (step === 'photo') {
+    return (
+      <View style={st.dark}>
+        <View style={st.camWrap}>
+          {permission?.granted ? (
+            <>
+              <CameraView ref={camera} style={StyleSheet.absoluteFill} facing="back" />
+              <View style={st.labelFinder} pointerEvents="none" />
+            </>
+          ) : (
+            <View style={{ padding: 24, gap: 12, alignItems: 'center' }}>
+              <T style={{ color: colors.onCamera, textAlign: 'center' }}>O app precisa da câmera para ler o preço da etiqueta.</T>
+              <Button label="Permitir câmera" onPress={requestPermission} />
+            </View>
+          )}
+        </View>
+        <View style={st.panel}>
+          <T bold style={{ fontSize: 20 }}>Enquadre o preço da etiqueta</T>
+          <T muted>Em etiquetas "de/por", enquadre o valor do "por".</T>
+          <Button label={reading ? 'Lendo o preço…' : 'Fotografar'} size="xl" icon="camera" disabled={reading || !permission?.granted} onPress={takeLabelPhoto} />
+          <Button label="Voltar e digitar" variant="ghost" disabled={reading} onPress={() => setStep('price')} />
+        </View>
+      </View>
+    );
   }
 
   if (step === 'code') {
@@ -166,6 +211,8 @@ export function ScanScreen({
           <Label>Preço na etiqueta</Label>
           <MoneyField large value={price} onChangeText={setPrice} autoFocus />
         </View>
+        {ocrFailed && <T style={{ color: colors.warn }}>Não encontrei o preço na foto. Tente de novo ou digite o valor.</T>}
+        <Button label="Fotografar etiqueta" variant="secondary" icon="camera" onPress={() => { setOcrFailed(false); setStep('photo'); }} />
         <Button label="Salvar preço" size="xl" disabled={value == null} onPress={() => onAdd(code, name.trim(), value)} />
         <Button label="Deixar sem preço" variant="ghost" onPress={() => onAdd(code, name.trim(), null)} />
       </View>
@@ -178,6 +225,7 @@ const st = StyleSheet.create({
   camWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   finder: { width: 270, height: 130, borderWidth: 3, borderColor: '#fff', borderRadius: 16, justifyContent: 'center' },
   laser: { height: 2, marginHorizontal: 14, backgroundColor: '#FF6B5F' },
+  labelFinder: { width: 280, height: 160, borderWidth: 3, borderColor: '#fff', borderRadius: 16 },
   topInfo: { minHeight: 120, alignItems: 'center', justifyContent: 'center', gap: 6, padding: 16 },
   panel: { backgroundColor: colors.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 18, paddingBottom: 16, gap: 12 },
   // Pushes the inputs to the bottom, right above the keyboard.

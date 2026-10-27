@@ -32,7 +32,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "O Checar Compras usa a câmera para ler o código de barras dos produtos.",
+          "cameraPermission": "O Checar Compras usa a câmera para ler o código de barras e o preço na etiqueta dos produtos.",
           "recordAudioAndroid": false
         }
       ],
