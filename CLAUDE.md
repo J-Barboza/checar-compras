@@ -50,6 +50,11 @@ adb shell am start -n com.jbarboz.checar_compras/.MainActivity
 
 ## Estado (27/10/2026)
 
+**Atualizado em:** 2026-10-27
+**Próximo passo:** analisar o resultado do teste do OCR no supermercado (fotos das etiquetas que falharem ficam em `image/`) e ajustar `priceOcr.ts`.
+
+**Sessão de 27/10:** OCR corrigido com base em logs reais do ML Kit (vírgula perdida "1899" e centavos sobrescritos "47" + "15"; 8 de 9 leituras certas), branch `uat` criada e publicada, APK da `uat` instalado nos dois celulares (Galaxy M52 `RQCT6010AWX` e SM-S731B `RQGYB08KQ4Y`, este o do supermercado), pasta `image/` no `.gitignore`. Pendente: resultado do teste no supermercado.
+
 **APK de teste 1 instalado e funcionando:** nova compra (mercado + orçamento), leitura de código pela câmera ou digitação, apelido com sugestão do Open Food Facts, último preço do produto, preço digitado, leitura repetida soma +1, FLV por kg ou unidade com último preço, edição e remoção de item, aviso de orçamento, conferência (ordem de coleta ou A a Z, marcar itens, total do caixa, tolerância), resultado e configuração da tolerância. A compra em andamento persiste se o app fechar. São 21 testes passando.
 
 **APK de teste 2 (branch `uat`, em teste no supermercado):** preço pela foto da etiqueta (OCR com ML Kit no aparelho). O valor lido só preenche o campo e o usuário confirma ou corrige. Em 9 leituras de cartazes reais, 8 deram o preço certo; a que errou foi porque o ML Kit não leu os reais. Para diagnosticar falhas, registre no log as linhas e as posições (`frame`) devolvidas pelo `TextRecognition.recognize` e leia com `adb logcat`.
