@@ -85,12 +85,13 @@ Qualquer consumidor de supermercado, com foco em compras maiores. Inclui idosos 
 ### 4.9 Comprovante para contestação
 
 - Ao concluir a conferência, o app guarda uma lista mínima: itens, quantidades, preços, supermercado, data e hora da leitura. Sem fotos.
-- Pode ser consultado depois, com o cupom na mão.
+- Pode ser consultado depois, com o cupom na mão, em "Compras anteriores" na tela inicial.
+- **Revisão:** na consulta é possível marcar e desmarcar itens e corrigir o total do caixa. O resultado ("ok" ou "divergente") é recalculado com a tolerância vigente na conclusão. Itens e preços não são editáveis, para o comprovante continuar sendo o registro do que foi lido no mercado.
 - **Retenção:** exclusão manual pelo usuário, ou automática após 30 dias, o que vier primeiro.
 
 ### 4.10 Limpeza e compras abandonadas
 
-- Ao concluir a conferência, os itens e preços da compra são apagados.
+- Ao concluir a conferência, a compra em andamento é apagada; os itens e preços ficam só no comprovante (4.9).
 - Compra não concluída expira após 5 horas desde a última atividade, ou na virada do dia, o que vier primeiro.
 - Ao reabrir o app após a expiração, o usuário é avisado de que havia uma compra em aberto e que ela foi apagada.
 - Ao expirar, itens e preços são apagados, sem registro no ranking.

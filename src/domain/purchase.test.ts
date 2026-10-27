@@ -5,12 +5,14 @@ import {
   addFlvItem,
   applyBudgetAlert,
   compareWithCashier,
+  concludePurchase,
   findByCode,
   incrementQty,
   lineTotal,
   newPurchase,
   pendingCount,
   purchaseTotal,
+  receiptResult,
   removeItem,
   sortItems,
   toggleChecked,
@@ -126,5 +128,26 @@ describe('order', () => {
     p = addBarcodeItem(p, '3', 'Feijão', 1);
     expect(sortItems(p.items, 'alfa').map((i) => i.name)).toEqual(['arroz', 'Feijão', 'Óleo']);
     expect(sortItems(p.items, 'coleta').map((i) => i.name)).toEqual(['Óleo', 'arroz', 'Feijão']);
+  });
+});
+
+describe('receipt', () => {
+  const bought = () => toggleChecked(addFlvItem(addBarcodeItem(base(), '789', 'Café', 10), 'Banana', 'kg', 5, 1.2), 1);
+
+  it('keeps items, market, cashier total and the tolerance of the day', () => {
+    const r = concludePurchase(bought(), 16.5, 1, 1000);
+    expect(r).toMatchObject({ market: 'Assaí', at: 1000, cashier: 16.5, tolerance: 1 });
+    expect(r.items.map((i) => [i.name, i.checked])).toEqual([['Café', true], ['Banana', false]]);
+  });
+
+  it('recalculates the result when the review changes the cashier total', () => {
+    const r = concludePurchase(bought(), 16, 1, 1000);
+    expect(receiptResult(r)).toEqual({ total: 16, diff: 0, ok: true });
+    expect(receiptResult({ ...r, cashier: 17.5 })).toEqual({ total: 16, diff: 1.5, ok: false });
+  });
+
+  it('lets the review mark items', () => {
+    const r = toggleChecked(concludePurchase(bought(), 16, 1, 1000), 2);
+    expect(r.items.every((i) => i.checked)).toBe(true);
   });
 });

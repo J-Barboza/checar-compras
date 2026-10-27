@@ -30,7 +30,7 @@ export function DoneScreen({ result, onHome }: { result: PurchaseResult; onHome:
           <Kv label="Diferença" value={formatMoney(Math.abs(result.diff))} />
           <Kv label="Tolerância" value={formatMoney(result.tolerance)} />
         </View>
-        <T muted style={{ textAlign: 'center' }}>Os itens desta compra foram apagados do aparelho.</T>
+        <T muted style={{ textAlign: 'center' }}>Os itens ficam em Compras anteriores por 30 dias, para revisar com o cupom na mão.</T>
       </ScrollView>
       <Footer>
         <Button label="Voltar ao início" size="xl" onPress={onHome} />

@@ -2,7 +2,7 @@ import { AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold, useFonts
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { BackHandler, KeyboardAvoidingView, Modal, StyleSheet, View } from 'react-native';
+import { Alert, BackHandler, KeyboardAvoidingView, Modal, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as db from './src/data/db';
 import { formatMoney, round2 } from './src/domain/money';
@@ -10,10 +10,11 @@ import {
   addBarcodeItem,
   addFlvItem,
   applyBudgetAlert,
-  compareWithCashier,
+  concludePurchase,
   incrementQty,
   newPurchase,
   purchaseTotal,
+  receiptResult,
   removeItem,
   toggleChecked,
   updateItem,
@@ -21,11 +22,13 @@ import {
   type ItemChanges,
   type ItemMode,
   type Purchase,
+  type Receipt,
 } from './src/domain/purchase';
 import { CheckScreen } from './src/screens/CheckScreen';
 import { ConfigScreen } from './src/screens/ConfigScreen';
 import { DoneScreen, type PurchaseResult } from './src/screens/DoneScreen';
 import { FlvScreen } from './src/screens/FlvScreen';
+import { HistoryScreen, receiptDate } from './src/screens/HistoryScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { ListScreen } from './src/screens/ListScreen';
 import { NewPurchaseScreen } from './src/screens/NewPurchaseScreen';
@@ -33,12 +36,12 @@ import { ScanScreen } from './src/screens/ScanScreen';
 import { Button, T } from './src/ui/components';
 import { colors } from './src/ui/theme';
 
-type Screen = 'home' | 'new' | 'list' | 'scan' | 'flv' | 'check' | 'done' | 'config';
+type Screen = 'home' | 'new' | 'list' | 'scan' | 'flv' | 'check' | 'done' | 'config' | 'history' | 'receipt';
 
 // Where the Android back button goes from each screen; home exits the app.
-const BACK: Partial<Record<Screen, Screen>> = { new: 'home', list: 'home', scan: 'list', flv: 'list', check: 'list', done: 'home', config: 'home' };
+const BACK: Partial<Record<Screen, Screen>> = { new: 'home', list: 'home', scan: 'list', flv: 'list', check: 'list', done: 'home', config: 'home', history: 'home', receipt: 'history' };
 
-db.purgeOldPrices(Date.now());
+db.purgeOld(Date.now());
 
 export default function App() {
   const [fontsLoaded] = useFonts({ AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold });
@@ -46,6 +49,8 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>(() => (db.loadPurchase() ? 'list' : 'home'));
   const [tolerance, setTolerance] = useState(() => db.loadTolerance());
   const [result, setResult] = useState<PurchaseResult | null>(null);
+  // Receipt open for review, a copy of the saved one.
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
   const [budgetAlert, setBudgetAlert] = useState(false);
   const [toast, setToast] = useState('');
   const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -125,13 +130,43 @@ export default function App() {
 
   function conclude(cashier: number) {
     if (!purchase) return;
-    const total = purchaseTotal(purchase.items);
-    const cmp = compareWithCashier(total, cashier, tolerance);
-    setResult({ ok: cmp.ok, market: purchase.market, at: Date.now(), total, cashier, diff: cmp.diff, tolerance });
-    // Items and prices of a concluded purchase are deleted (spec 4.10).
+    const r = db.saveReceipt(concludePurchase(purchase, cashier, tolerance, Date.now()));
+    const res = receiptResult(r);
+    setResult({ ok: res.ok, market: r.market, at: r.at, total: res.total, cashier, diff: res.diff, tolerance });
+    // The purchase in progress goes away; its items stay only in the receipt (spec 4.9 and 4.10).
     db.clearPurchase();
     setPurchase(null);
     setScreen('done');
+  }
+
+  function toggleInReceipt(id: number) {
+    if (!receipt) return;
+    const r = toggleChecked(receipt, id);
+    setReceipt(r);
+    db.updateReceipt(r);
+  }
+
+  function saveReview(cashier: number) {
+    if (!receipt) return;
+    db.updateReceipt({ ...receipt, cashier });
+    showToast('Revisão salva');
+    setScreen('history');
+  }
+
+  function deleteReceipt() {
+    if (!receipt) return;
+    Alert.alert('Excluir esta compra?', 'Os itens e preços dela serão apagados do aparelho.', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Excluir',
+        style: 'destructive',
+        onPress: () => {
+          db.deleteReceipt(receipt.id);
+          showToast('Compra excluída');
+          setScreen('history');
+        },
+      },
+    ]);
   }
 
   function changeTolerance(v: number) {
@@ -148,7 +183,32 @@ export default function App() {
       <StatusBar style={dark ? 'light' : 'dark'} />
       <SafeAreaView style={[st.root, { backgroundColor: dark ? colors.camera : colors.bg }]} edges={['top', 'bottom']}>
         <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
-          {screen === 'home' && <HomeScreen purchase={purchase} tolerance={tolerance} onNew={() => setScreen('new')} onContinue={() => setScreen('list')} onConfig={() => setScreen('config')} />}
+          {screen === 'home' && (
+            <HomeScreen
+              purchase={purchase}
+              tolerance={tolerance}
+              receiptCount={db.loadReceipts().length}
+              onNew={() => setScreen('new')}
+              onContinue={() => setScreen('list')}
+              onHistory={() => setScreen('history')}
+              onConfig={() => setScreen('config')}
+            />
+          )}
+          {screen === 'history' && <HistoryScreen receipts={db.loadReceipts()} onBack={() => setScreen('home')} onOpen={(r) => { setReceipt(r); setScreen('receipt'); }} />}
+          {receipt && screen === 'receipt' && (
+            <CheckScreen
+              key={receipt.id}
+              purchase={receipt}
+              tolerance={receipt.tolerance}
+              title={`${receipt.market} · ${receiptDate(receipt.at)}`}
+              initialCashier={receipt.cashier}
+              concludeLabel="Salvar revisão"
+              onBack={() => setScreen('history')}
+              onToggle={toggleInReceipt}
+              onConclude={saveReview}
+              onDelete={deleteReceipt}
+            />
+          )}
           {screen === 'new' && <NewPurchaseScreen markets={db.loadMarkets()} onBack={() => setScreen('home')} onStart={start} />}
           {screen === 'config' && <ConfigScreen tolerance={tolerance} onChange={changeTolerance} onBack={() => setScreen('home')} />}
           {screen === 'done' && result && <DoneScreen result={result} onHome={() => setScreen('home')} />}

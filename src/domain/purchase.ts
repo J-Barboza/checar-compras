@@ -102,7 +102,8 @@ export function removeItem(p: Purchase, id: number): Purchase {
   return { ...p, items: p.items.filter((it) => it.id !== id) };
 }
 
-export function toggleChecked(p: Purchase, id: number): Purchase {
+/** Works on the purchase in progress and on a receipt under review. */
+export function toggleChecked<P extends { items: Item[] }>(p: P, id: number): P {
   return { ...p, items: p.items.map((it) => (it.id === id ? { ...it, checked: !it.checked } : it)) };
 }
 
@@ -134,4 +135,26 @@ export interface Comparison {
 export function compareWithCashier(registered: number, cashier: number, tolerance: number): Comparison {
   const diff = round2(cashier - registered);
   return { diff, ok: Math.abs(diff) <= tolerance };
+}
+
+/** What stays on the device after a purchase is concluded (spec 4.9). */
+export interface Receipt {
+  /** Set by the database; 0 before saving. */
+  id: number;
+  market: string;
+  /** When the purchase was concluded. */
+  at: number;
+  items: Item[];
+  cashier: number;
+  /** Tolerance in force at conclusion, so later changes in the settings don't alter the result. */
+  tolerance: number;
+}
+
+export function concludePurchase(p: Purchase, cashier: number, tolerance: number, now: number): Receipt {
+  return { id: 0, market: p.market, at: now, items: p.items, cashier, tolerance };
+}
+
+export function receiptResult(r: Receipt): Comparison & { total: number } {
+  const total = purchaseTotal(r.items);
+  return { total, ...compareWithCashier(total, r.cashier, r.tolerance) };
 }
