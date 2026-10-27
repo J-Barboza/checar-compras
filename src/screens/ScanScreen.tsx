@@ -3,7 +3,7 @@ import { CameraView, useCameraPermissions, type BarcodeScanningResult } from 'ex
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { getProduct, type Product } from '../data/db';
-import { readPriceFromPhoto } from '../data/labelOcr';
+import { readPricesFromPhoto } from '../data/labelOcr';
 import { suggestName } from '../data/openFoodFacts';
 import { formatMoney, moneyToInput, parseMoney } from '../domain/money';
 import { findByCode, type Item, type Purchase } from '../domain/purchase';
@@ -40,6 +40,8 @@ export function ScanScreen({
   const [price, setPrice] = useState('');
   const [reading, setReading] = useState(false);
   const [ocrFailed, setOcrFailed] = useState(false);
+  // Every big price on the last label photo, so the user can switch to another one.
+  const [photoPrices, setPhotoPrices] = useState<number[]>([]);
   // onBarcodeScanned fires many times per second; this keeps only the first read.
   const locked = useRef(false);
   const camera = useRef<CameraView>(null);
@@ -76,14 +78,15 @@ export function ScanScreen({
   async function takeLabelPhoto() {
     if (!camera.current || reading) return;
     setReading(true);
-    let value: number | null = null;
+    let values: number[] = [];
     try {
       const photo = await camera.current.takePictureAsync({ quality: 0.7, shutterSound: false });
-      value = await readPriceFromPhoto(photo.uri);
+      values = await readPricesFromPhoto(photo.uri);
     } catch {}
     setReading(false);
-    setOcrFailed(value == null);
-    if (value != null) setPrice(moneyToInput(value));
+    setOcrFailed(values.length === 0);
+    setPhotoPrices(values);
+    if (values.length) setPrice(moneyToInput(values[0]));
     setStep('price');
   }
 
@@ -211,6 +214,13 @@ export function ScanScreen({
           <Label>Preço na etiqueta</Label>
           <MoneyField large value={price} onChangeText={setPrice} autoFocus />
         </View>
+        {photoPrices.filter((p) => p !== value).map((p) => (
+          <Pressable key={p} accessibilityRole="button" onPress={() => setPrice(moneyToInput(p))} style={st.suggest}>
+            <T>
+              Outro preço na foto: <T bold>{formatMoney(p)}</T> · <T bold style={{ color: colors.primary }}>Usar</T>
+            </T>
+          </Pressable>
+        ))}
         {ocrFailed && <T style={{ color: colors.warn }}>Não encontrei o preço na foto. Tente de novo ou digite o valor.</T>}
         <Button label="Fotografar etiqueta" variant="secondary" icon="camera" onPress={() => { setOcrFailed(false); setStep('photo'); }} />
         <Button label="Salvar preço" size="xl" disabled={value == null} onPress={() => onAdd(code, name.trim(), value)} />

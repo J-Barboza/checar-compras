@@ -1,6 +1,8 @@
 // Chooses the shelf price among the text lines OCR found on a label photo.
 // The user frames the right price ("por" on de/por labels), so the rule stays
-// simple: the tallest line that looks like a price wins.
+// simple: the tallest line that looks like a price wins. Some labels print a
+// second price at about the same size (member price, "exclusivo para
+// cooperados"); those come back too, so the user can pick with one tap.
 
 export type OcrLine = { text: string; top: number; left: number; width: number; height: number };
 
@@ -14,6 +16,8 @@ const UNIT_PRICE = /\/\s*\d*\s*(kg|g|l|ml|un)/i;
 // Superscript cents come back as two lines: the reais ("47", sometimes with a stray mark) and the cents ("15").
 const REAIS_ONLY = /^\s*(?:R\$\s*)?(\d{1,4})\s*[,.;:]?\s*$/i;
 const CENTS_ONLY = /^\s*[,.]?\s*(\d{2})\s*$/;
+// A price line at least this fraction of the tallest one counts as a second big price.
+const SIMILAR_HEIGHT = 0.75;
 
 function priceInLine(text: string): number | null {
   if (UNIT_PRICE.test(text)) return null;
@@ -41,12 +45,17 @@ function priceWithSuperscriptCents(reais: OcrLine, lines: OcrLine[]): number | n
   return null;
 }
 
-/** Returns the price on the tallest price-like line, or null when none is found. */
-export function pickPrice(lines: OcrLine[]): number | null {
-  let best: { value: number; height: number } | null = null;
+/**
+ * Returns the prices printed at about the size of the biggest one, cheapest first
+ * (the member price, since the user is a member), or an empty list when none is found.
+ */
+export function pickPrices(lines: OcrLine[]): number[] {
+  const found: { value: number; height: number }[] = [];
   for (const line of lines) {
     const value = priceInLine(line.text) ?? priceWithSuperscriptCents(line, lines);
-    if (value != null && (best == null || line.height > best.height)) best = { value, height: line.height };
+    if (value != null) found.push({ value, height: line.height });
   }
-  return best?.value ?? null;
+  const tallest = Math.max(0, ...found.map((p) => p.height));
+  const big = found.filter((p) => p.height >= tallest * SIMILAR_HEIGHT).map((p) => p.value);
+  return [...new Set(big)].sort((a, b) => a - b);
 }

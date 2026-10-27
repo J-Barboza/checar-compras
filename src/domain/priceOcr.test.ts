@@ -1,8 +1,10 @@
 import { describe, expect, it } from '@jest/globals';
-import { pickPrice, type OcrLine } from './priceOcr';
+import { pickPrices, type OcrLine } from './priceOcr';
 
 // Builds a line with only text and height; position matters only for split cents.
 const line = (text: string, height: number, top = 0, left = 0, width = 0): OcrLine => ({ text, height, top, left, width });
+// The price that fills the field.
+const pickPrice = (lines: OcrLine[]) => pickPrices(lines)[0] ?? null;
 
 describe('pickPrice', () => {
   it('reads common price formats', () => {
@@ -55,6 +57,18 @@ describe('pickPrice', () => {
   it('does not join numbers that are far apart', () => {
     expect(pickPrice([line('47', 549, 1721, 678, 865), line('15', 260, 3000, 1586, 348)])).toBeNull();
     expect(pickPrice([line('5', 300, 0, 0, 200), line('10', 100, 0, 2000, 100)])).toBeNull();
+  });
+
+  // "Por" and member ("exclusivo para cooperados") prices printed at about the same size.
+  it('returns every big price, cheapest first', () => {
+    const bread = [line('OFERTA', 90), line('DE: R$', 20), line('6,19', 100), line('EXCLUSIVO PARA COOPERADOS', 25), line('5,79', 105), line('/UN', 20)];
+    expect(pickPrices(bread)).toEqual([5.79, 6.19]);
+    const cheese = [line('DE: R$', 20), line('24,69', 60), line('21,39', 120), line('17,99', 115), line('1KG', 55)];
+    expect(pickPrices(cheese)).toEqual([17.99, 21.39]);
+  });
+
+  it('lists a repeated price once', () => {
+    expect(pickPrices([line('5,79', 100), line('5,79', 95)])).toEqual([5.79]);
   });
 
   it('returns null when there is no price', () => {
